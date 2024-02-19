@@ -1,0 +1,123 @@
+{
+  "id": "56996d3d-539a-401a-9648-ab85880ed4d0",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "5",
+  "dialect": "pg",
+  "tables": {
+    "questions": {
+      "name": "questions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quiz_id": {
+          "name": "quiz_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "question_type",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answer1": {
+          "name": "answer1",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answer2": {
+          "name": "answer2",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answer3": {
+          "name": "answer3",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answer4": {
+          "name": "answer4",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "correct_answer": {
+          "name": "correct_answer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "questions_quiz_id_quizs_id_fk": {
+          "name": "questions_quiz_id_quizs_id_fk",
+          "tableFrom": "questions",
+          "tableTo": "quizs",
+          "columnsFrom": [
+            "quiz_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "quizs": {
+      "name": "quizs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {
+    "question_type": {
+      "name": "question_type",
+      "values": {
+        "true-false": "true-false",
+        "multiple-choice": "multiple-choice"
+      }
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

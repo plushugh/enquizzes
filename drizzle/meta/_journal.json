@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1708069529392,
+      "tag": "0000_lethal_mantis",
+      "breakpoints": true
+    }
+  ]
+}
