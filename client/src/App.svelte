@@ -1,4 +1,5 @@
 <script lang="ts">
+  import e from "cors";
   import { io } from "socket.io-client";
 
   const BASE_URL = "http://localhost:3022";
@@ -22,11 +23,18 @@
   socket.on("connect", () => {
     console.log("Connected to server");
 
-    socket.on("leaderboard", (_leaderboard: Map<string, number>) => {
-      leaderboard = _leaderboard;
+    socket.on("leaderboard", (_leaderboard) => {
+      leaderboard = JSON.parse(_leaderboard);
     });
 
-    socket.on("new-question", (question) => {
+    socket.on("new-question", (_question) => {
+      if (!isHost && !quizQuestioning) {
+        inLobby = false;
+        quizQuestioning = true;
+      }
+
+      const question = JSON.parse(_question);
+
       currentQuestion = question.title;
       answers = [
         question.answer1,
@@ -35,11 +43,19 @@
         question.answer4,
       ];
       questionAnswered = false;
+      lastQuestionCorrect = null;
     });
 
     socket.on("quiz-ended", (_leaderboard) => {
       quizEnded = true;
-      leaderboard = _leaderboard;
+      leaderboard = JSON.parse(_leaderboard);
+    });
+
+    socket.on("correct-answer", () => {
+      lastQuestionCorrect = true;
+    });
+    socket.on("incorrect-answer", () => {
+      lastQuestionCorrect = false;
     });
   });
 
@@ -50,6 +66,9 @@
   let quizQuestioning: boolean = false;
 
   let quizId: string | null = null;
+  let playerName = "";
+
+  let lastQuestionCorrect: boolean | null = false;
 </script>
 
 <main>
@@ -79,7 +98,8 @@
         const codeRegex = /([0-9]){6}/;
 
         if (codeRegex.test(text)) {
-          alert("yes");
+          alert("Quiz created with code: " + text);
+          isHost = true;
           inQuiz = true;
           joinCode = text;
           socket.emit("host-join", joinCode);
@@ -95,7 +115,7 @@
     </form>
   {/if}
 
-  {#if isHost === true && inQuiz && quizQuestioning && !quizEnded}
+  {#if isHost === true && inQuiz && !quizQuestioning && !quizEnded}
     <h2>Host</h2>
     <p>Quiz is live</p>
     <button
@@ -157,13 +177,13 @@
     <p>Join a quiz</p>
     <form
       on:submit|preventDefault={async () => {
-        if (!quizId) {
-          alert("Please enter a quiz ID");
+        if (!joinCode || playerName === "") {
+          alert("Please enter a join code and player name");
         }
 
-        socket.emit("player-join", joinCode);
-        socket.on("invalid-quiz", () => {
-          alert("Invalid quiz ID");
+        socket.emit("player-join", joinCode, playerName);
+        socket.on("invalid-code", () => {
+          alert("Invalid code");
           // reset everything via reload
           window.location.reload();
         });
@@ -179,6 +199,8 @@
     >
       <label for="join-code">Enter join code</label>
       <input type="text" id="join-code" bind:value={joinCode} />
+      <label for="player-name">Enter player name</label>
+      <input type="text" id="player-name" bind:value={playerName} />
       <button type="submit">Join</button>
     </form>
   {/if}
@@ -200,18 +222,28 @@
     <h2>Participant</h2>
     <p>Questioning</p>
     <p class="question">{currentQuestion}</p>
-    <ul>
-      {#each answers as answer, index}
-        <li>
-          <button
-            on:click={() => {
-              socket.emit("answer-question", index);
-              questionAnswered = true;
-            }}>{answer}</button
-          >
-        </li>
-      {/each}
-    </ul>
+    {#if !questionAnswered}
+      <ul>
+        {#each answers as answer, index}
+          <li>
+            <button
+              on:click={() => {
+                socket.emit("answer-question", index);
+                questionAnswered = true;
+              }}>{answer}</button
+            >
+          </li>
+        {/each}
+      </ul>
+    {:else if lastQuestionCorrect !== null}
+      {#if lastQuestionCorrect}
+        <p>Correct, waiting for next question</p>
+      {:else}
+        <p>Incorrect, waiting for next question</p>
+      {/if}
+    {:else}
+      <p>Answer submitted, waiting for results</p>
+    {/if}
   {/if}
 </main>
 

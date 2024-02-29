@@ -6,6 +6,7 @@ import createQuizSchema from "./zod/schema";
 import { eq } from "drizzle-orm";
 import http from "http";
 import cors from "cors"
+import e from "express";
 
 const app = express();
 
@@ -63,6 +64,7 @@ function generateCode() {
 }
 
 app.post("/quiz/host/:id", async (req, res) => {
+  console.info("user has requested to host quiz #" + req.params.id)
   const quizId = parseInt(req.params.id);
   const quiz = await db.select().from(quizs).where(eq(quizs.id, quizId)).execute();
   if (quiz.length === 0) {
@@ -92,6 +94,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("host-join", (code: string) => {
+    console.info("host has requested to join quiz #" + code)
     if (!runningQuizs.has(code)) {
       socket.emit("invalid-code");
       return;
@@ -105,22 +108,25 @@ io.on("connection", (socket) => {
     quiz.questionIndex = -1;
 
     socket.on("start-quiz", async () => {
+      console.info("host has started quiz #" + code)
       quiz.questionIndex = 0;
-      io.to(code).emit("new-question", { ...(await getQuestionById(quiz.questionIds[quiz.questionIndex])), correctAnswer: undefined });
+      io.to(code).emit("new-question", serializeObj({ ...(await getQuestionById(quiz.questionIds[quiz.questionIndex])), correctAnswer: undefined }));
     });
 
     socket.on("next-question", async () => {
-      io.to(code).emit("leaderboard", quiz.leaderboard);
+      console.info("host has requested next question for quiz #" + code)
+      io.to(code).emit("leaderboard", serializeLeaderboard(quiz.leaderboard));
       quiz.questionIndex++;
       if (quiz.questionIndex >= quiz.questionIds.length) {
-        io.to(code).emit("quiz-ended", quiz.leaderboard);
+        io.to(code).emit("quiz-ended", serializeLeaderboard(quiz.leaderboard));
         return;
       }
-      io.to(code).emit("new-question", { ...(await getQuestionById(quiz.questionIds[quiz.questionIndex])), correctAnswer: undefined });
+      io.to(code).emit("new-question", serializeObj({ ...(await getQuestionById(quiz.questionIds[quiz.questionIndex])), correctAnswer: undefined }));
     });
   });
 
   socket.on("player-join", (code: string, name: string) => {
+    console.info("player has requested to join code #" + code)
     if (!runningQuizs.has(code)) {
       socket.emit("invalid-code");
       return;
@@ -132,12 +138,18 @@ io.on("connection", (socket) => {
 
     if (!quiz) return; // compiler doesn't know that runningQuizs.has(code) implies quiz is not undefined
 
-    io.to(code).emit("leaderboard", quiz.leaderboard);
+    io.to(code).emit("leaderboard", serializeLeaderboard(quiz.leaderboard));
 
     socket.on("answer-question", async (answer: number) => {
+      console.info("player has answered question for quiz #" + code)
       const question = await getQuestionById(quiz?.questionIds[quiz?.questionIndex]);
       if (question.correctAnswer === answer) {
+        console.log("Correct answer");
         quiz?.leaderboard?.set(name, (quiz?.leaderboard?.get(name) || 0) + 1);
+        socket.emit("correct-answer");
+      } else {
+        console.log("Incorrect answer");
+        socket.emit("incorrect-answer");
       }
     });
   });
@@ -146,3 +158,11 @@ io.on("connection", (socket) => {
 server.listen(3022, () => {
   console.log("Enquizzes server running on port 3022");
 })
+
+function serializeObj(obj: any) {
+  return JSON.stringify(obj);
+}
+
+function serializeLeaderboard(obj: Map<string, number>) {
+  return serializeObj(Array.from(obj.entries()));
+}
