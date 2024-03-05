@@ -76,13 +76,15 @@
 
   {#if isHost === null}
     <h2>Who are you?</h2>
-    <button on:click={() => (isHost = true)}>Host</button>
-    <button on:click={() => (isHost = false)}>Participant</button>
+    <button on:click={() => (isHost = true)}>I'm a teacher - Host</button>
+    <button on:click={() => (isHost = false)}
+      >I'm a student - Participant</button
+    >
   {/if}
 
   {#if isHost === true && inQuiz === false}
     <h2>Host</h2>
-    <p>Host a quiz</p>
+    <p>Host a created quiz</p>
     <form
       on:submit|preventDefault={async () => {
         if (!quizId) {
@@ -111,13 +113,13 @@
     >
       <label for="quiz-id">Enter quiz ID</label>
       <input type="text" id="quiz-id" bind:value={quizId} />
-      <button type="submit">Start</button>
+      <button type="submit">Create Lobby</button>
     </form>
   {/if}
 
   {#if isHost === true && inQuiz && !quizQuestioning && !quizEnded}
-    <h2>Host</h2>
-    <p>Quiz is live</p>
+    <h2>Quiz lobby is live</h2>
+    <p class="join-code">Join code: {joinCode}</p>
     <button
       on:click={async () => {
         socket.emit("start-quiz");
@@ -125,32 +127,34 @@
         inLobby = false;
       }}>Start Quiz</button
     >
-    <p>Join code: {joinCode}</p>
-    <ul>
+    <h3>Players</h3>
+    <ol>
       {#each lobbyPlayers as player}
         <li>
           {player.name}
         </li>
       {/each}
-    </ul>
+    </ol>
   {/if}
 
   {#if isHost === true && inQuiz && quizQuestioning && !quizEnded}
-    <h2>Host</h2>
-    <p>Questioning</p>
-    <p class="question">{currentQuestion}</p>
+    <h2>Questioning</h2>
+    <p class="join-code">Join code: {joinCode}</p>
     <button
       on:click={() => {
         socket.emit("next-question");
-      }}>Next</button
+      }}>End Answering & Next Question</button
     >
+    <h3 class="question">{currentQuestion}</h3>
     <ul>
       {#each answers as answer}
-        <li>
+        <li class="host-ans">
           {answer}
         </li>
       {/each}
     </ul>
+
+    <h3>Leaderboard</h3>
     <ol>
       {#each lobbyPlayers as player}
         <li>
@@ -161,7 +165,7 @@
   {/if}
 
   {#if quizEnded}
-    <h1>Quiz Ended</h1>
+    <h1>Quiz Ended, Thanks for Playing</h1>
     <h2>Leaderboard</h2>
     <ol>
       {#each lobbyPlayers as player}
@@ -199,29 +203,29 @@
     >
       <label for="join-code">Enter join code</label>
       <input type="text" id="join-code" bind:value={joinCode} />
-      <label for="player-name">Enter player name</label>
+      <label for="player-name">Enter your nickname</label>
       <input type="text" id="player-name" bind:value={playerName} />
       <button type="submit">Join</button>
     </form>
   {/if}
 
   {#if isHost === false && inQuiz && inLobby}
-    <h2>Participant</h2>
-    <p>Waiting for host to start quiz</p>
-    <p>Join code: {joinCode}</p>
-    <ul>
+    <h2>In Lobby</h2>
+    <p class="join-code">Join code: {joinCode}</p>
+    <h3>Waiting for host to start quiz</h3>
+    <h3>Players</h3>
+    <ol>
       {#each lobbyPlayers as player}
         <li>
           {player.name}
         </li>
       {/each}
-    </ul>
+    </ol>
   {/if}
 
   {#if isHost === false && inQuiz && quizQuestioning && !quizEnded}
-    <h2>Participant</h2>
-    <p>Questioning</p>
-    <p class="question">{currentQuestion}</p>
+    <h2>Answer this question</h2>
+    <h3 class="question">{currentQuestion}</h3>
     {#if !questionAnswered}
       <ul>
         {#each answers as answer, index}
@@ -237,9 +241,9 @@
       </ul>
     {:else if lastQuestionCorrect !== null}
       {#if lastQuestionCorrect}
-        <p>Correct, waiting for next question</p>
+        <p class="correct">Correct, waiting for next question</p>
       {:else}
-        <p>Incorrect, waiting for next question</p>
+        <p class="incorrect">Incorrect, waiting for next question</p>
       {/if}
     {:else}
       <p>Answer submitted, waiting for results</p>
@@ -248,4 +252,44 @@
 </main>
 
 <style>
+  .correct {
+    color: green;
+  }
+  .incorrect {
+    color: red;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  ul {
+    display: grid;
+    height: 50vh;
+
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 1rem;
+    padding: 0;
+  }
+
+  ul li button,
+  ul li {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1.5rem;
+  }
+
+  .host-ans {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+  }
+
+  .question {
+    font-size: 2rem;
+    background: #00000066;
+    padding: 2rem 4rem;
+  }
 </style>
